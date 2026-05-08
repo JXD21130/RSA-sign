@@ -3,95 +3,109 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Firma Digital RSA</title>
+<title>RSA Console</title>
 
 <style>
-    body {
-        font-family: Arial, sans-serif;
-        background: #121212;
-        color: white;
-        text-align: center;
-        padding: 20px;
+    body{
+        margin:0;
+        background:black;
+        color:#00ff00;
+        font-family: monospace;
+        overflow:hidden;
     }
 
-    .container {
-        max-width: 700px;
-        margin: auto;
-        background: #1e1e1e;
-        padding: 20px;
-        border-radius: 15px;
-        box-shadow: 0 0 20px rgba(255,255,255,0.1);
+    #terminal{
+        padding:20px;
+        height:100vh;
+        overflow-y:auto;
+        white-space:pre-wrap;
     }
 
-    input, button, select {
-        width: 90%;
-        padding: 12px;
-        margin: 8px;
-        border-radius: 8px;
-        border: none;
-        font-size: 16px;
+    .line{
+        margin:2px 0;
     }
 
-    input, select {
-        background: #2d2d2d;
-        color: white;
+    #inputLine{
+        display:flex;
+        align-items:center;
     }
 
-    button {
-        background: #00aaff;
-        color: white;
-        cursor: pointer;
-        font-weight: bold;
+    #prompt{
+        margin-right:5px;
     }
 
-    button:hover {
-        background: #0088cc;
+    input{
+        background:black;
+        color:#00ff00;
+        border:none;
+        outline:none;
+        font-family: monospace;
+        font-size:16px;
+        width:100%;
     }
 
-    #resultado {
-        margin-top: 20px;
-        text-align: left;
-        white-space: pre-wrap;
-        background: #2d2d2d;
-        padding: 15px;
-        border-radius: 10px;
+    .cursor{
+        display:inline-block;
+        width:10px;
+        background:#00ff00;
+        animation: blink 1s infinite;
     }
 
-    .hidden {
-        display: none;
+    @keyframes blink{
+        50%{
+            opacity:0;
+        }
     }
 </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>🔐 Firma Digital RSA</h1>
-
-    <select id="modo" onchange="cambiarModo()">
-        <option value="firmar">Firmar</option>
-        <option value="comprobar">Comprobar</option>
-    </select>
-
-    <div id="firmarDiv">
-        <input id="mensajeFirmar" placeholder="Mensaje a firmar">
-        <input id="p" type="number" placeholder="p">
-        <input id="q" type="number" placeholder="q">
-        <input id="e" type="number" placeholder="e">
-        <button onclick="firmar()">Firmar</button>
-    </div>
-
-    <div id="comprobarDiv" class="hidden">
-        <input id="mensajeComprobar" placeholder="Mensaje recibido">
-        <input id="firma" type="number" placeholder="Firma">
-        <input id="n" type="number" placeholder="n">
-        <input id="eComp" type="number" placeholder="e">
-        <button onclick="comprobar()">Comprobar</button>
-    </div>
-
-    <div id="resultado"></div>
-</div>
+<div id="terminal"></div>
 
 <script>
+const terminal = document.getElementById("terminal");
+
+let estado = "";
+let datos = {};
+
+function print(text=""){
+    const div = document.createElement("div");
+    div.className = "line";
+    div.textContent = text;
+    terminal.appendChild(div);
+    terminal.scrollTop = terminal.scrollHeight;
+}
+
+function input(promptText, callback){
+    const line = document.createElement("div");
+    line.id = "inputLine";
+
+    const prompt = document.createElement("span");
+    prompt.id = "prompt";
+    prompt.textContent = promptText;
+
+    const inp = document.createElement("input");
+
+    line.appendChild(prompt);
+    line.appendChild(inp);
+
+    terminal.appendChild(line);
+
+    inp.focus();
+
+    inp.addEventListener("keydown", async (e)=>{
+        if(e.key==="Enter"){
+            const value = inp.value;
+
+            line.innerHTML = promptText + value;
+
+            callback(value);
+        }
+    });
+
+    terminal.scrollTop = terminal.scrollHeight;
+}
+
 function gcd(a,b){
     while(b!==0){
         [a,b]=[b,a%b];
@@ -100,18 +114,15 @@ function gcd(a,b){
 }
 
 function modInverse(a,m){
-    for(let x=1;x<m;x++){
-        if((a*x)%m===1) return x;
-    }
-    return null;
-}
+    a=((a%m)+m)%m;
 
-async function sha256(msg){
-    const data = new TextEncoder().encode(msg);
-    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2,"0")).join("");
-    return hashHex;
+    for(let x=1;x<m;x++){
+        if((a*x)%m===1){
+            return x;
+        }
+    }
+
+    return null;
 }
 
 function modPow(base, exp, mod){
@@ -121,9 +132,10 @@ function modPow(base, exp, mod){
 
     let result = 1n;
 
-    while(exp > 0){
-        if(exp % 2n === 1n)
+    while(exp > 0n){
+        if(exp % 2n === 1n){
             result = (result * base) % mod;
+        }
 
         exp = exp / 2n;
         base = (base * base) % mod;
@@ -132,74 +144,183 @@ function modPow(base, exp, mod){
     return result;
 }
 
-function cambiarModo(){
-    const modo = document.getElementById("modo").value;
+async function sha256(message){
+    const msgBuffer = new TextEncoder().encode(message);
 
-    document.getElementById("firmarDiv").classList.toggle("hidden", modo !== "firmar");
-    document.getElementById("comprobarDiv").classList.toggle("hidden", modo !== "comprobar");
-    document.getElementById("resultado").innerText = "";
+    const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
+
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+
+    return hashArray.map(b =>
+        b.toString(16).padStart(2,"0")
+    ).join("");
 }
 
-async function firmar(){
-    const mensaje = document.getElementById("mensajeFirmar").value;
-    const p = parseInt(document.getElementById("p").value);
-    const q = parseInt(document.getElementById("q").value);
-    const e = parseInt(document.getElementById("e").value);
+function reiniciar(){
+    print("");
+    print("=== Programa de firma digital RSA ===");
 
-    const n = p*q;
-    const r = (p-1)*(q-1);
+    input("¿Quieres firmar o comprobar? (f/c): ", async (opcion)=>{
 
-    if(gcd(e,r)!==1){
-        document.getElementById("resultado").innerText =
-            "❌ e no es válido";
-        return;
-    }
+        opcion = opcion.toLowerCase();
 
-    const d = modInverse(e,r);
+        if(opcion==="f" || opcion==="firmar"){
+            firmarFlow();
+        }
 
-    const hashHex = await sha256(mensaje);
-    const hashInt = BigInt("0x"+hashHex);
-    const reducido = hashInt % BigInt(n);
+        else if(opcion==="c" || opcion==="comprobar"){
+            comprobarFlow();
+        }
 
-    const firma = modPow(reducido,d,n);
-
-    document.getElementById("resultado").innerText =
-`--- FIRMA GENERADA ---
-Hash hex: ${hashHex}
-
-n: ${n}
-r: ${r}
-d: ${d}
-
-Hash reducido: ${reducido}
-
-Firma: ${firma}`;
+        else{
+            print("Opción no válida");
+            preguntarReinicio();
+        }
+    });
 }
 
-async function comprobar(){
-    const mensaje = document.getElementById("mensajeComprobar").value;
-    const firma = BigInt(document.getElementById("firma").value);
-    const n = parseInt(document.getElementById("n").value);
-    const e = parseInt(document.getElementById("eComp").value);
+async function firmarFlow(){
 
-    const hashHex = await sha256(mensaje);
-    const hashInt = BigInt("0x"+hashHex);
-    const reducido = hashInt % BigInt(n);
+    print("");
+    print("--- Modo: Firmar ---");
 
-    const recuperado = modPow(firma,e,n);
+    input("Introduce un mensaje: ", async (mensaje)=>{
 
-    let valido = recuperado === reducido;
+        const hashHex = await sha256(mensaje);
 
-    document.getElementById("resultado").innerText =
-`--- COMPROBACIÓN ---
-Hash hex: ${hashHex}
+        print("Hash en hex: " + hashHex);
 
-Hash reducido: ${reducido}
+        const hashInt = BigInt("0x"+hashHex);
 
-Hash recuperado: ${recuperado}
+        print("Hash como entero: " + hashInt);
 
-${valido ? "✅ La firma es real" : "❌ La firma NO es real"}`;
+        input("Introduce p: ", (p)=>{
+
+            input("Introduce q: ", (q)=>{
+
+                const n = Number(p) * Number(q);
+
+                print("n: " + n);
+
+                const r = (Number(p)-1)*(Number(q)-1);
+
+                print("r: " + r);
+
+                input("Introduce e: ", (e)=>{
+
+                    e = Number(e);
+
+                    if(gcd(e,r)===1){
+                        print("e es válido");
+                    }
+
+                    else{
+                        print("e no es válido");
+                        preguntarReinicio();
+                        return;
+                    }
+
+                    const d = modInverse(e,r);
+
+                    print("d: " + d);
+
+                    const reducido = hashInt % BigInt(n);
+
+                    print("Hash reducido: " + reducido);
+
+                    print("Setup completo, calculando firma...");
+
+                    const firma = modPow(reducido,d,n);
+
+                    print("Firma: " + firma);
+
+                    input("¿Quieres comprobar si devuelve el hash? (si/no): ", (resp)=>{
+
+                        if(resp.toLowerCase()==="si" || resp===""){
+
+                            const recuperado = modPow(firma,e,n);
+
+                            print("Hash recuperado: " + recuperado);
+
+                            if(recuperado===reducido){
+                                print("El programa ha funcionado correctamente");
+                            }
+
+                            else{
+                                print("El hash NO coincide");
+                            }
+                        }
+
+                        preguntarReinicio();
+                    });
+                });
+            });
+        });
+    });
 }
+
+async function comprobarFlow(){
+
+    print("");
+    print("--- Modo: Comprobar ---");
+
+    input("Introduce el mensaje que te han enviado: ", async (mensaje)=>{
+
+        input("Introduce la firma: ", async (firma)=>{
+
+            const hashHex = await sha256(mensaje);
+
+            print("Hash en hex: " + hashHex);
+
+            const hashInt = BigInt("0x"+hashHex);
+
+            print("Hash como entero: " + hashInt);
+
+            input("Introduce n: ", (n)=>{
+
+                input("Introduce e: ", (e)=>{
+
+                    const reducido = hashInt % BigInt(n);
+
+                    print("Setup completado, calculando hash...");
+
+                    const supuestoHash = modPow(firma,e,n);
+
+                    print("El hash resultado es: " + supuestoHash);
+
+                    if(supuestoHash===reducido){
+                        print("La firma es real");
+                    }
+
+                    else{
+                        print("La firma NO es real o los valores introducidos están mal");
+                    }
+
+                    preguntarReinicio();
+                });
+            });
+        });
+    });
+}
+
+function preguntarReinicio(){
+
+    input("¿Reiniciar el programa? (y/n): ", (resp)=>{
+
+        if(resp.toLowerCase()==="y" || resp===""){
+            print("");
+            print("========================================");
+            print("");
+            reiniciar();
+        }
+
+        else{
+            print("Hasta luego.");
+        }
+    });
+}
+
+reiniciar();
 </script>
 
 </body>
