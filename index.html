@@ -2,204 +2,2029 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>RSA Terminal Web</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RSA</title>
 <style>
-body {
-    background: #0d0d0d;
-    color: #00ff88;
-    font-family: monospace;
-    margin: 0;
-}
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&display=swap');
 
-#terminal {
-    padding: 10px;
-    height: 90vh;
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0a;
+    --bg2: #111111;
+    --bg3: #181818;
+    --border: #2a2a2a;
+    --border2: #333;
+    --green: #00ff88;
+    --green2: #00cc66;
+    --amber: #ffcc00;
+    --red: #ff4444;
+    --blue: #4488ff;
+    --muted: #555;
+    --muted2: #888;
+    --text: #e0e0e0;
+    --mono: 'JetBrains Mono', 'Courier New', monospace;
+    --tab-h: 48px;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.6;
+    overflow: hidden;
+  }
+
+  #app {
+    display: flex;
+    height: 100vh;
+    height: 100dvh;
+    flex-direction: column;
+  }
+
+  /* ── TOP BAR ── */
+  #topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    height: 38px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    gap: 12px;
+  }
+  #topbar-left { display: flex; align-items: center; gap: 10px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.r { background: #ff5f57; }
+  .dot.y { background: #ffbd2e; }
+  .dot.g { background: #28c840; }
+  #topbar-title { color: var(--muted2); font-size: 11px; letter-spacing: 0.08em; }
+  #topbar-right { display: flex; gap: 8px; align-items: center; }
+
+  .tb-btn {
+    background: none;
+    border: 1px solid var(--border2);
+    color: var(--muted2);
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 4px 9px;
+    cursor: pointer;
+    border-radius: 3px;
+    letter-spacing: 0.04em;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tb-btn:hover, .tb-btn:active { border-color: var(--green); color: var(--green); }
+
+  /* ── MOBILE TAB BAR ── */
+  #tab-bar {
+    display: none;
+    flex-shrink: 0;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    height: var(--tab-h);
+  }
+  #tab-bar-inner {
+    display: flex;
+    height: 100%;
+  }
+  .tab-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    padding: 0 4px;
+  }
+  .tab-btn.active { color: var(--green); border-bottom-color: var(--green); }
+
+  /* ── MAIN AREA ── */
+  #main {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* ── FILE PANEL ── */
+  #file-panel {
+    width: 220px;
+    flex-shrink: 0;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #file-panel-header {
+    padding: 10px 12px 8px;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  #file-panel-header span { color: var(--muted2); }
+  .fp-action {
+    background: none; border: none; color: var(--muted); font-size: 16px;
+    cursor: pointer; padding: 2px 5px; line-height: 1;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .fp-action:hover, .fp-action:active { color: var(--green); }
+
+  #file-list { flex: 1; overflow-y: auto; padding: 6px 0; }
+  .file-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    cursor: pointer;
+    gap: 7px;
+    font-size: 12px;
+    color: var(--muted2);
+    border-left: 2px solid transparent;
+    transition: all 0.1s;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 40px;
+  }
+  .file-item:hover, .file-item:active { background: var(--bg3); color: var(--text); border-left-color: var(--border2); }
+  .file-item.active { background: var(--bg3); color: var(--green); border-left-color: var(--green); }
+  .file-item .fi-icon { font-size: 11px; opacity: 0.6; }
+  .file-item .fi-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-item .fi-del { font-size: 14px; color: var(--red); padding: 4px 6px; opacity: 0.7; }
+
+  #file-actions {
+    padding: 8px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 6px;
+  }
+  .file-btn {
+    flex: 1;
+    background: none;
+    border: 1px solid var(--border2);
+    color: var(--muted2);
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 7px 4px;
+    cursor: pointer;
+    border-radius: 3px;
+    text-align: center;
+    transition: all 0.15s;
+    letter-spacing: 0.03em;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .file-btn:hover, .file-btn:active { border-color: var(--green); color: var(--green); }
+
+  /* ── EDITOR PANEL ── */
+  #editor-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    border-right: 1px solid var(--border);
+    overflow: hidden;
+  }
+  #editor-header {
+    padding: 8px 14px;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    min-height: 36px;
+  }
+  #editor-filename { color: var(--amber); }
+  #editor-save-btn {
+    background: none; border: 1px solid var(--border2);
+    color: var(--muted2); font-family: var(--mono); font-size: 10px;
+    padding: 5px 10px; cursor: pointer; border-radius: 3px;
+    transition: all 0.15s; letter-spacing: 0.04em;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #editor-save-btn:hover, #editor-save-btn:active { border-color: var(--amber); color: var(--amber); }
+
+  #editor-area {
+    flex: 1;
+    background: var(--bg);
+    border: none;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.7;
+    padding: 14px;
+    resize: none;
+    outline: none;
     overflow-y: auto;
-    white-space: pre-wrap;
-}
+    -webkit-overflow-scrolling: touch;
+  }
+  #editor-placeholder {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+  }
 
-#input {
-    width: 100%;
-    padding: 10px;
+  /* ── TERMINAL ── */
+  #terminal-panel {
+    width: 520px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #term-header {
+    padding: 8px 14px;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    min-height: 36px;
+  }
+  #term-clear {
+    background: none; border: none; color: var(--muted); font-family: var(--mono);
+    font-size: 10px; cursor: pointer; letter-spacing: 0.04em;
+    -webkit-tap-highlight-color: transparent; padding: 4px 8px;
+  }
+  #term-clear:hover, #term-clear:active { color: var(--red); }
+
+  #output {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .line { white-space: pre-wrap; word-break: break-all; line-height: 1.6; font-size: 12.5px; }
+  .line.prompt { color: var(--green); }
+  .line.output-text { color: var(--text); }
+  .line.success { color: var(--green2); }
+  .line.error { color: var(--red); }
+  .line.info { color: var(--blue); }
+  .line.label { color: var(--amber); }
+  .line.muted { color: var(--muted2); }
+  .line.pem { color: #99bbff; font-size: 11px; }
+  .line.sep { color: var(--border2); }
+
+  #input-row {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    border-top: 1px solid var(--border);
+    background: var(--bg2);
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  #prompt-symbol { color: var(--green); font-size: 13px; flex-shrink: 0; }
+  #cmd-input {
+    flex: 1;
+    background: none;
     border: none;
     outline: none;
-    background: #111;
-    color: #00ff88;
-    font-family: monospace;
-}
-button {
-    background: #111;
-    color: #00ff88;
-    border: 1px solid #00ff88;
-    padding: 5px;
-    margin: 3px;
-}
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 16px; /* 16px evita zoom en iOS */
+    caret-color: var(--green);
+    -webkit-appearance: none;
+  }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* ── HIDDEN UPLOAD ── */
+  #upload-input { display: none; }
+
+  /* ── MODAL ── */
+  #modal {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  #modal.show { display: flex; }
+  #modal-box {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 18px;
+    width: 100%;
+    max-width: 560px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 90vh;
+  }
+  #modal-title { font-size: 11px; color: var(--muted2); letter-spacing: 0.08em; }
+  #modal-textarea {
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    color: #99bbff;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.5;
+    padding: 10px;
+    border-radius: 3px;
+    resize: vertical;
+    min-height: 160px;
+    outline: none;
+    -webkit-appearance: none;
+  }
+  #modal-textarea:focus { border-color: var(--blue); }
+  .modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
+  .modal-btn {
+    background: none; border: 1px solid var(--border2); color: var(--muted2);
+    font-family: var(--mono); font-size: 11px; padding: 8px 16px;
+    cursor: pointer; border-radius: 3px; transition: all 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .modal-btn.confirm { border-color: var(--green); color: var(--green); }
+  .modal-btn:hover, .modal-btn:active { opacity: 0.8; }
+
+  /* ══════════════════════════════════════════
+     MOBILE — max-width 768px
+     Layout de pestañas, columna única
+  ══════════════════════════════════════════ */
+  @media (max-width: 768px) {
+    html, body { font-size: 14px; }
+
+    #topbar { padding: 0 12px; height: 44px; }
+    #topbar-title { display: none; }
+    .dots { display: none; }
+    .tb-btn { font-size: 11px; padding: 5px 10px; }
+
+    #tab-bar { display: block; }
+
+    #main {
+      position: relative;
+      flex-direction: column;
+    }
+
+    /* Todos los paneles ocupan 100% y se ocultan */
+    #file-panel,
+    #editor-panel,
+    #terminal-panel {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: none;
+      flex-direction: column;
+    }
+
+    /* El panel activo se muestra */
+    #file-panel.mobile-active,
+    #editor-panel.mobile-active,
+    #terminal-panel.mobile-active {
+      display: flex;
+    }
+
+    /* Terminal ocupa todo el ancho */
+    #terminal-panel { width: 100%; }
+
+    /* Input más grande y cómodo en móvil */
+    #input-row { padding: 10px 12px; }
+    #cmd-input { font-size: 16px; }
+
+    /* Líneas de output un poco más grandes */
+    .line { font-size: 13px; }
+    .line.pem { font-size: 11px; }
+
+    /* File items más fáciles de tocar */
+    .file-item { min-height: 46px; padding: 10px 14px; }
+    .file-item .fi-del { opacity: 1; }
+
+    /* Editor header */
+    #editor-header { padding: 10px 14px; min-height: 44px; }
+    #editor-area { font-size: 13px; }
+
+    /* Term header */
+    #term-header { padding: 10px 14px; min-height: 44px; }
+  }
 </style>
 </head>
 <body>
 
-<div id="terminal"></div>
+<div id="app">
+  <div id="topbar">
+    <div id="topbar-left">
+      <div class="dots" style="display:flex;gap:6px">
+        <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+      </div>
+      <span id="topbar-title">rsa — cifrado y descifrado</span>
+    </div>
+    <div id="topbar-right">
+      <button class="tb-btn" onclick="downloadAllFiles()">exportar</button>
+      <button class="tb-btn" onclick="document.getElementById('upload-input').click()">importar</button>
+    </div>
+  </div>
 
-<input id="input" placeholder="Escribe comando: help" />
+  <!-- Tab bar: solo visible en móvil -->
+  <div id="tab-bar">
+    <div id="tab-bar-inner">
+      <button class="tab-btn active" onclick="switchTab('terminal')">terminal</button>
+      <button class="tab-btn" onclick="switchTab('editor')">editor</button>
+      <button class="tab-btn" onclick="switchTab('archivos')">archivos</button>
+    </div>
+  </div>
 
-<div>
-<button onclick="cmd('help')">help</button>
-<button onclick="cmd('gen')">gen keys</button>
-<button onclick="cmd('enc')">encrypt</button>
-<button onclick="cmd('dec')">decrypt</button>
+  <div id="main">
+    <!-- FILE PANEL -->
+    <div id="file-panel">
+      <div id="file-panel-header">
+        <span>ARCHIVOS</span>
+        <div style="display:flex;gap:4px">
+          <button class="fp-action" title="Nuevo archivo" onclick="newFile()">+</button>
+        </div>
+      </div>
+      <div id="file-list"></div>
+      <div id="file-actions">
+        <button class="file-btn" onclick="newFile()">nuevo</button>
+        <button class="file-btn" onclick="document.getElementById('upload-input').click()">subir</button>
+        <button class="file-btn" onclick="downloadCurrentFile()">bajar</button>
+      </div>
+    </div>
+
+    <!-- EDITOR PANEL -->
+    <div id="editor-panel">
+      <div id="editor-header">
+        <span id="editor-filename">sin archivo</span>
+        <button id="editor-save-btn" onclick="saveCurrentFile()">guardar</button>
+      </div>
+      <div id="editor-placeholder">selecciona o crea un archivo</div>
+      <textarea id="editor-area" style="display:none;" spellcheck="false" oninput="onEditorInput()"></textarea>
+    </div>
+
+    <!-- TERMINAL -->
+    <div id="terminal-panel">
+      <div id="term-header">
+        <span>TERMINAL</span>
+        <button id="term-clear" onclick="clearTerminal()">limpiar</button>
+      </div>
+      <div id="output"></div>
+      <div id="input-row">
+        <span id="prompt-symbol">›</span>
+        <input id="cmd-input" type="text" autocomplete="off" autocorrect="off" spellcheck="false" />
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden file input -->
+<input type="file" id="upload-input" accept=".txt" multiple onchange="handleUpload(event)" />
+
+<!-- PEM Modal -->
+<div id="modal">
+  <div id="modal-box">
+    <div id="modal-title">PEGAR BLOQUE PEM</div>
+    <textarea id="modal-textarea" placeholder="-----BEGIN ...-----&#10;...&#10;-----END ...-----"></textarea>
+    <div class="modal-btns">
+      <button class="modal-btn" onclick="closeModal(null)">cancelar</button>
+      <button class="modal-btn confirm" onclick="closeModal(document.getElementById('modal-textarea').value)">aceptar</button>
+    </div>
+  </div>
 </div>
 
 <script>
+// ═══════════════════════════════════════════════════════
+//  BIG INTEGER HELPERS (native BigInt)
+// ═══════════════════════════════════════════════════════
 
-// ───────── TERMINAL ─────────
-const term = document.getElementById("terminal");
-const input = document.getElementById("input");
-
-function log(msg){
-    term.textContent += msg + "\n";
-    term.scrollTop = term.scrollHeight;
+function modPow(base, exp, mod) {
+  if (mod === 1n) return 0n;
+  let result = 1n;
+  base = base % mod;
+  while (exp > 0n) {
+    if (exp % 2n === 1n) result = result * base % mod;
+    exp = exp >> 1n;
+    base = base * base % mod;
+  }
+  return result;
 }
 
-// ───────── ABECEDARIO ─────────
-const ABC = "abcdefghijklmnopqrstuvwxyz".split("");
-const map = {};
-const rev = {};
+function modInverse(a, m) {
+  // Extended Euclidean
+  let [old_r, r] = [a, m];
+  let [old_s, s] = [1n, 0n];
+  while (r !== 0n) {
+    let q = old_r / r;
+    [old_r, r] = [r, old_r - q * r];
+    [old_s, s] = [s, old_s - q * s];
+  }
+  if (old_r !== 1n) throw new Error('No tiene inverso modular');
+  return ((old_s % m) + m) % m;
+}
 
-ABC.forEach((c,i)=>{
-    map[c]=i+1;
-    rev[i+1]=c;
+function randomBigIntBelow(max) {
+  // Returns a random BigInt in [0, max) using rejection sampling
+  const bits = max.toString(2).length;
+  while (true) {
+    const bytes = Math.ceil(bits / 8);
+    const arr = new Uint8Array(bytes);
+    crypto.getRandomValues(arr);
+    // mask top bits so we don't overshoot too often
+    const mask = (1 << (bits % 8 || 8)) - 1;
+    arr[0] &= mask;
+    let n = 0n;
+    for (const b of arr) n = (n << 8n) | BigInt(b);
+    if (n < max) return n;
+  }
+}
+
+function millerRabin(n, k = 20) {
+  if (n < 2n) return false;
+  if (n === 2n || n === 3n) return true;
+  if (n % 2n === 0n) return false;
+  let r = 0n, d = n - 1n;
+  while (d % 2n === 0n) { r++; d /= 2n; }
+  for (let i = 0; i < k; i++) {
+    // safe random witness for any size n
+    const a = 2n + randomBigIntBelow(n - 4n);
+    let x = modPow(a, d, n);
+    if (x === 1n || x === n - 1n) continue;
+    let cont = false;
+    for (let j = 0n; j < r - 1n; j++) {
+      x = modPow(x, 2n, n);
+      if (x === n - 1n) { cont = true; break; }
+    }
+    if (!cont) return false;
+  }
+  return true;
+}
+
+function randomBigInt(bits) {
+  const bytes = Math.ceil(bits / 8);
+  const arr = new Uint8Array(bytes);
+  crypto.getRandomValues(arr);
+  arr[0] |= 0x80;
+  arr[bytes - 1] |= 0x01;
+  let n = 0n;
+  for (const b of arr) n = (n << 8n) | BigInt(b);
+  return n;
+}
+
+function randomPrime(bits) {
+  while (true) {
+    let n = randomBigInt(bits);
+    if (millerRabin(n)) return n;
+  }
+}
+
+function gcd(a, b) {
+  a = a < 0n ? -a : a;
+  b = b < 0n ? -b : b;
+  while (b !== 0n) { [a, b] = [b, a % b]; }
+  return a;
+}
+
+function digitsToN(digits) {
+  // bits = ceil(digits * log2(10)) = ceil(digits * 3.32193)
+  // Use integer arithmetic to avoid Infinity for large digit counts
+  return Math.ceil(digits * 3.32193);
+}
+
+// ═══════════════════════════════════════════════════════
+//  ABECEDARIO
+// ═══════════════════════════════════════════════════════
+
+const DEFAULT_ABC = {
+  a:1,b:2,c:3,d:4,e:5,f:6,g:7,h:8,i:9,j:10,
+  k:11,l:12,m:13,n:14,o:15,p:16,q:17,r:18,s:19,t:20,
+  u:21,v:22,w:23,x:24,y:25,z:26
+};
+
+let ABECEDARIO = {...DEFAULT_ABC};
+let NUMERO_A_LETRA = Object.fromEntries(Object.entries(ABECEDARIO).map(([k,v])=>[v,k]));
+
+const MARCADOR_DIGITO = -1;
+const OFFSET_DIGITO = 27;
+
+function resetAbc() {
+  ABECEDARIO = {...DEFAULT_ABC};
+  NUMERO_A_LETRA = Object.fromEntries(Object.entries(ABECEDARIO).map(([k,v])=>[v,k]));
+}
+
+function applyAbc(abc) {
+  ABECEDARIO = {...abc};
+  NUMERO_A_LETRA = Object.fromEntries(Object.entries(ABECEDARIO).map(([k,v])=>[v,k]));
+}
+
+function genAbcWithSeed(seed) {
+  seed = seed.trim();
+  // Numeric seed "1-2-3-..."
+  const parts = seed.split('-');
+  if (parts.length === 26 && parts.every(p => !isNaN(p))) {
+    const nums = parts.map(Number);
+    const letters = 'abcdefghijklmnopqrstuvwxyz'.split('');
+    return Object.fromEntries(letters.map((l, i) => [l, nums[i]]));
+  }
+  // String seed → seeded shuffle
+  const letters = 'abcdefghijklmnopqrstuvwxyz'.split('');
+  const nums = Array.from({length:26}, (_,i) => i+1);
+  // LCG seeded shuffle
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (Math.imul(31, h) + seed.charCodeAt(i)) >>> 0;
+  function rand() { h = (Math.imul(1664525, h) + 1013904223) >>> 0; return h / 0x100000000; }
+  for (let i = nums.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [nums[i], nums[j]] = [nums[j], nums[i]];
+  }
+  return Object.fromEntries(letters.map((l, i) => [l, nums[i]]));
+}
+
+function randomSeed(len = 8) {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let s = '';
+  for (let i = 0; i < len; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
+
+// ═══════════════════════════════════════════════════════
+//  TEXTO ↔ NÚMEROS
+// ═══════════════════════════════════════════════════════
+
+function textoANumeros(txt) {
+  const out = [];
+  for (const ch of txt) {
+    if (ch === ' ') { out.push(0); }
+    else if (ABECEDARIO[ch.toLowerCase()] !== undefined) { out.push(ABECEDARIO[ch.toLowerCase()]); }
+    else if (/\d/.test(ch)) { out.push(MARCADOR_DIGITO); out.push(OFFSET_DIGITO + parseInt(ch)); }
+  }
+  return out;
+}
+
+function numerosATexto(nums) {
+  let out = '';
+  for (let i = 0; i < nums.length; i++) {
+    const v = nums[i];
+    if (v === 0) out += ' ';
+    else if (v === MARCADOR_DIGITO) {
+      i++;
+      if (i < nums.length) { const d = nums[i] - OFFSET_DIGITO; if (d >= 0 && d <= 9) out += d; }
+    } else if (NUMERO_A_LETRA[v]) out += NUMERO_A_LETRA[v];
+    else out += `[${v}]`;
+  }
+  return out;
+}
+
+// ═══════════════════════════════════════════════════════
+//  DER / PEM ENCODING
+// ═══════════════════════════════════════════════════════
+
+function bigIntToBytes(n) {
+  if (n === 0n) return new Uint8Array([0]);
+  const bits = n.toString(2).length;
+  const len = Math.ceil(bits / 8);
+  const arr = new Uint8Array(len);
+  let tmp = n;
+  for (let i = len - 1; i >= 0; i--) { arr[i] = Number(tmp & 0xffn); tmp >>= 8n; }
+  return arr;
+}
+
+function encodeLen(len) {
+  if (len < 0x80) return new Uint8Array([len]);
+  if (len < 0x100) return new Uint8Array([0x81, len]);
+  if (len < 0x10000) return new Uint8Array([0x82, len >> 8, len & 0xff]);
+  throw new Error('Longitud demasiado grande');
+}
+
+function encodeDERInt(n) {
+  let raw = bigIntToBytes(n);
+  if (raw[0] & 0x80) { const tmp = new Uint8Array(raw.length + 1); tmp[0] = 0; tmp.set(raw, 1); raw = tmp; }
+  const lenBytes = encodeLen(raw.length);
+  return concat([new Uint8Array([0x02]), lenBytes, raw]);
+}
+
+function encodeDERSeq(inner) {
+  const lenBytes = encodeLen(inner.length);
+  return concat([new Uint8Array([0x30]), lenBytes, inner]);
+}
+
+function concat(arrays) {
+  const total = arrays.reduce((s, a) => s + a.length, 0);
+  const out = new Uint8Array(total);
+  let off = 0;
+  for (const a of arrays) { out.set(a, off); off += a.length; }
+  return out;
+}
+
+function toBase64(bytes) {
+  let s = '';
+  for (const b of bytes) s += String.fromCharCode(b);
+  return btoa(s);
+}
+
+function fromBase64(s) {
+  const bin = atob(s.replace(/\s/g, ''));
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return arr;
+}
+
+function wrapPEM(label, bytes) {
+  const b64 = toBase64(bytes);
+  const lines = b64.match(/.{1,64}/g).join('\n');
+  return `-----BEGIN ${label}-----\n${lines}\n-----END ${label}-----`;
+}
+
+function stripPEM(pem) {
+  const b64 = pem.replace(/-----BEGIN [A-Z0-9 ]+-----/g, '')
+                  .replace(/-----END [A-Z0-9 ]+-----/g, '')
+                  .replace(/\s/g, '');
+  return fromBase64(b64);
+}
+
+function decodeDERTLV(data, off) {
+  const tag = data[off++];
+  let lb = data[off++], length;
+  if (lb < 0x80) length = lb;
+  else if (lb === 0x81) { length = data[off++]; }
+  else if (lb === 0x82) { length = (data[off] << 8) | data[off+1]; off += 2; }
+  else throw new Error('Longitud DER no soportada');
+  return { tag, value: data.slice(off, off + length), next: off + length };
+}
+
+function decodeDERInt(bytes) {
+  let n = 0n;
+  for (const b of bytes) n = (n << 8n) | BigInt(b);
+  return n;
+}
+
+// RSA Public Key PEM (formato propio)
+function genPubKeyPEM(n, e) {
+  const seq = concat([encodeDERInt(n), encodeDERInt(e)]);
+  return wrapPEM('RSA PUBLIC KEY', encodeDERSeq(seq));
+}
+
+function parsePubKeyPEM(pem) {
+  const der = stripPEM(pem);
+  const { value: seqVal } = decodeDERTLV(der, 0);
+  let off = 0;
+  const nTLV = decodeDERTLV(seqVal, off);
+  const eTLV = decodeDERTLV(seqVal, nTLV.next);
+  return { n: decodeDERInt(nTLV.value), e: decodeDERInt(eTLV.value) };
+}
+
+// RSA Private Key PEM (PKCS#1-like)
+function genPrivKeyPEM(n, e, d, p, q) {
+  const dp = d % (p - 1n);
+  const dq = d % (q - 1n);
+  const qInv = modInverse(q, p);
+  const seq = concat([
+    encodeDERInt(0n), encodeDERInt(n), encodeDERInt(e), encodeDERInt(d),
+    encodeDERInt(p), encodeDERInt(q), encodeDERInt(dp), encodeDERInt(dq), encodeDERInt(qInv)
+  ]);
+  return wrapPEM('RSA PRIVATE KEY', encodeDERSeq(seq));
+}
+
+function parsePrivKeyPEM(pem) {
+  const der = stripPEM(pem);
+  const { value: seqVal } = decodeDERTLV(der, 0);
+  let off = 0;
+  const ver = decodeDERTLV(seqVal, off); off = ver.next;
+  const nT  = decodeDERTLV(seqVal, off); off = nT.next;
+  const eT  = decodeDERTLV(seqVal, off); off = eT.next;
+  const dT  = decodeDERTLV(seqVal, off); off = dT.next;
+  const pT  = decodeDERTLV(seqVal, off); off = pT.next;
+  const qT  = decodeDERTLV(seqVal, off); off = qT.next;
+  return {
+    n: decodeDERInt(nT.value), e: decodeDERInt(eT.value),
+    d: decodeDERInt(dT.value), p: decodeDERInt(pT.value), q: decodeDERInt(qT.value)
+  };
+}
+
+// Encrypted message PEM
+// (compatibilidad interna — los nuevos archivos usan RSA CIPHER)
+function pemToNums(pem) {
+  const data = stripPEM(pem);
+  const nums = [];
+  let i = 0;
+  while (i < data.length) {
+    const sign = data[i++];
+    const len = new DataView(data.buffer, data.byteOffset + i, 4).getUint32(0, false); i += 4;
+    const nb = data.slice(i, i + len); i += len;
+    let val = 0n;
+    for (const b of nb) val = (val << 8n) | BigInt(b);
+    nums.push(sign === 1 ? -val : val);
+  }
+  return nums;
+}
+
+// ═══════════════════════════════════════════════════════
+//  NUEVO SISTEMA PEM UNIFICADO
+//  RSA PUBLIC KEY   → DER(n, e)
+//  RSA PRIVATE KEY  → DER(0, n, e, d, p, q, dp, dq, qInv)
+//  RSA CIPHER       → MPI(n) + MPI(e) [+ MPI(d) si cifrado con d] + mensaje_raw
+//  RSA SIGN         → MPI(firma) + MPI(n) + MPI(e)
+// ═══════════════════════════════════════════════════════
+
+function encodeMPI(n) {
+  const b = bigIntToBytes(n);
+  const hdr = new Uint8Array(2);
+  new DataView(hdr.buffer).setUint16(0, b.length, false);
+  return concat([hdr, b]);
+}
+
+function decodeMPI(data, off) {
+  const len = new DataView(data.buffer, data.byteOffset + off, 2).getUint16(0, false);
+  off += 2;
+  let val = 0n;
+  for (let i = 0; i < len; i++) val = (val << 8n) | BigInt(data[off + i]);
+  return { value: val, next: off + len };
+}
+
+// RSA SIGN: MPI(firma) + MPI(n) + MPI(e)
+function genSignPEM(firma, n, e) {
+  return wrapPEM('RSA SIGN', concat([encodeMPI(firma), encodeMPI(n), encodeMPI(e)]));
+}
+function parseSignPEM(pem) {
+  const data = stripPEM(pem);
+  const fR = decodeMPI(data, 0);
+  const nR = decodeMPI(data, fR.next);
+  const eR = decodeMPI(data, nR.next);
+  return { firma: fR.value, n: nR.value, e: eR.value };
+}
+
+// RSA CIPHER: 1 byte modo (0=e,1=d) + MPI(n) + MPI(e) [+ MPI(d) si modo=1] + raw_mensaje
+function genCipherPEM(nums, n, e, d_val, modoCifrado, seed, incluirClaves, incluirSeed) {
+  // Formato: 1B(modo) + 1B(tieneClaves) + [MPI(n)+MPI(e)] + 1B(tieneSeed) + [2B(len)+seedBytes] + msg_raw
+  // d nunca se incluye.
+  const modo = modoCifrado === 'd' ? 1 : 0;
+  const modoByte = new Uint8Array([modo]);
+  const tieneClaves = incluirClaves ? 1 : 0;
+  const tieneClavesByte = new Uint8Array([tieneClaves]);
+  let clavesPart = new Uint8Array(0);
+  if (tieneClaves) clavesPart = concat([encodeMPI(n), encodeMPI(e)]);
+  const tieneSeed = (incluirSeed && seed) ? 1 : 0;
+  const tieneSeedByte = new Uint8Array([tieneSeed]);
+  let seedPart = new Uint8Array(0);
+  if (tieneSeed) {
+    const seedBytes = new TextEncoder().encode(seed);
+    const seedLen = new Uint8Array(2);
+    new DataView(seedLen.buffer).setUint16(0, seedBytes.length, false);
+    seedPart = concat([seedLen, seedBytes]);
+  }
+  // mensaje raw
+  const parts = [];
+  for (const num of nums) {
+    const isNeg = num < 0n;
+    const abs = isNeg ? -num : num;
+    const nb = bigIntToBytes(abs);
+    const sign = new Uint8Array([isNeg ? 1 : 0]);
+    const lenBytes = new Uint8Array(4);
+    new DataView(lenBytes.buffer).setUint32(0, nb.length, false);
+    parts.push(sign, lenBytes, nb);
+  }
+  const msgPart = concat(parts);
+  return wrapPEM('RSA CIPHER', concat([modoByte, tieneClavesByte, clavesPart, tieneSeedByte, seedPart, msgPart]));
+}
+
+function parseCipherPEM(pem) {
+  const data = stripPEM(pem);
+  let off = 0;
+  const modo = data[off++];         // 0=e, 1=d
+  const tieneClaves = data[off++];  // 0=sin claves, 1=con claves
+  let n = null, e = null;
+  if (tieneClaves) {
+    const nR = decodeMPI(data, off); off = nR.next; n = nR.value;
+    const eR = decodeMPI(data, off); off = eR.next; e = eR.value;
+  }
+  // seed
+  const tieneSeed = data[off++];
+  let seed = '';
+  if (tieneSeed) {
+    const seedLen = new DataView(data.buffer, data.byteOffset + off, 2).getUint16(0, false); off += 2;
+    const seedBytes = data.slice(off, off + seedLen); off += seedLen;
+    seed = new TextDecoder().decode(seedBytes);
+  }
+  // parse nums
+  const nums = [];
+  while (off < data.length) {
+    const sign = data[off++];
+    const len = new DataView(data.buffer, data.byteOffset + off, 4).getUint32(0, false); off += 4;
+    const nb = data.slice(off, off + len); off += len;
+    let val = 0n; for (const b of nb) val = (val << 8n) | BigInt(b);
+    nums.push(sign === 1 ? -val : val);
+  }
+  return { n, e, modo: modo === 1 ? 'd' : 'e', seed, nums };
+}
+
+// Detectar tipo de PEM por etiqueta
+function detectarTipoPEM(content) {
+  const labels = ['RSA PUBLIC KEY','RSA PRIVATE KEY','RSA CIPHER','RSA SIGN'];
+  for (const label of labels) {
+    if (content.includes(`-----BEGIN ${label}-----`)) return label;
+  }
+  return null;
+}
+
+function extraerPEM(content, label) {
+  const start = content.indexOf(`-----BEGIN ${label}-----`);
+  const endTag = `-----END ${label}-----`;
+  const end = content.indexOf(endTag);
+  if (start === -1 || end === -1) return null;
+  return content.slice(start, end + endTag.length);
+}
+
+// ═══════════════════════════════════════════════════════
+//  SHA-256 (Web Crypto)
+// ═══════════════════════════════════════════════════════
+
+async function sha256BigInt(msg) {
+  const enc = new TextEncoder().encode(msg);
+  const hash = await crypto.subtle.digest('SHA-256', enc);
+  const arr = new Uint8Array(hash);
+  let n = 0n;
+  for (const b of arr) n = (n << 8n) | BigInt(b);
+  return n;
+}
+
+// ═══════════════════════════════════════════════════════
+//  FILE SYSTEM (in-memory)
+// ═══════════════════════════════════════════════════════
+
+let files = {}; // { name: content }
+let activeFile = null;
+let editorDirty = false;
+
+function renderFileList() {
+  const list = document.getElementById('file-list');
+  list.innerHTML = '';
+  const names = Object.keys(files).sort();
+  if (names.length === 0) {
+    list.innerHTML = '<div style="padding:12px;font-size:11px;color:var(--muted)">vacío</div>';
+    return;
+  }
+  for (const name of names) {
+    const div = document.createElement('div');
+    div.className = 'file-item' + (name === activeFile ? ' active' : '');
+    div.innerHTML = `<span class="fi-icon">▸</span><span class="fi-name" title="${name}">${name}</span><span class="fi-del" onclick="deleteFile('${name}',event)">✕</span>`;
+    div.onclick = (e) => { if (!e.target.classList.contains('fi-del')) openFile(name); };
+    list.appendChild(div);
+  }
+}
+
+function openFile(name) {
+  if (activeFile && editorDirty) saveCurrentFile();
+  activeFile = name;
+  editorDirty = false;
+  const area = document.getElementById('editor-area');
+  const ph = document.getElementById('editor-placeholder');
+  area.style.display = 'block';
+  ph.style.display = 'none';
+  area.value = files[name] || '';
+  document.getElementById('editor-filename').textContent = name;
+  renderFileList();
+}
+
+function onEditorInput() { editorDirty = true; }
+
+function saveCurrentFile() {
+  if (!activeFile) return;
+  files[activeFile] = document.getElementById('editor-area').value;
+  editorDirty = false;
+  print(`✓ guardado: ${activeFile}`, 'success');
+}
+
+function newFile() {
+  const name = prompt('Nombre del archivo (ej: claves.txt):');
+  if (!name) return;
+  const fname = name.endsWith('.txt') ? name : name + '.txt';
+  files[fname] = '';
+  renderFileList();
+  openFile(fname);
+}
+
+function deleteFile(name, e) {
+  e.stopPropagation();
+  if (!confirm(`¿Eliminar ${name}?`)) return;
+  delete files[name];
+  if (activeFile === name) {
+    activeFile = null;
+    document.getElementById('editor-area').style.display = 'none';
+    document.getElementById('editor-placeholder').style.display = 'flex';
+    document.getElementById('editor-filename').textContent = 'sin archivo';
+    editorDirty = false;
+  }
+  renderFileList();
+}
+
+function downloadCurrentFile() {
+  if (!activeFile) { print('no hay archivo seleccionado', 'error'); return; }
+  if (editorDirty) saveCurrentFile();
+  const blob = new Blob([files[activeFile]], {type:'text/plain'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = activeFile; a.click();
+}
+
+function downloadAllFiles() {
+  const names = Object.keys(files);
+  if (names.length === 0) { print('no hay archivos', 'error'); return; }
+  for (const name of names) {
+    const blob = new Blob([files[name]], {type:'text/plain'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  }
+}
+
+function handleUpload(e) {
+  const fs = e.target.files;
+  for (const f of fs) {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      files[f.name] = ev.target.result;
+      renderFileList();
+      print(`✓ importado: ${f.name}`, 'success');
+    };
+    reader.readAsText(f);
+  }
+  e.target.value = '';
+}
+
+function writeFile(name, content) {
+  files[name] = content;
+  renderFileList();
+  if (activeFile === name) document.getElementById('editor-area').value = content;
+}
+
+function readFile(name) {
+  return files[name] ?? null;
+}
+
+function listFiles() {
+  return Object.keys(files).sort();
+}
+
+// ═══════════════════════════════════════════════════════
+//  DETECT PEM IN TXT — nuevo sistema unificado
+// ═══════════════════════════════════════════════════════
+
+function parsearTxtUnificado(content) {
+  // Intenta detectar cualquiera de los 4 tipos de PEM
+  const resultado = { tipo: null };
+
+  // RSA CIPHER (prioridad: contiene claves + mensaje)
+  if (content.includes('-----BEGIN RSA CIPHER-----')) {
+    try {
+      const pem = extraerPEM(content, 'RSA CIPHER');
+      if (pem) {
+        const parsed = parseCipherPEM(pem);
+        return { tipo: 'RSA CIPHER', ...parsed, pem };
+      }
+    } catch(ex) {}
+  }
+  // RSA PRIVATE KEY
+  if (content.includes('-----BEGIN RSA PRIVATE KEY-----')) {
+    try {
+      const pem = extraerPEM(content, 'RSA PRIVATE KEY');
+      if (pem) {
+        const { n, e, d, p, q } = parsePrivKeyPEM(pem);
+        return { tipo: 'RSA PRIVATE KEY', n, e, d, p, q, pem };
+      }
+    } catch(ex) {}
+  }
+  // RSA PUBLIC KEY
+  if (content.includes('-----BEGIN RSA PUBLIC KEY-----')) {
+    try {
+      const pem = extraerPEM(content, 'RSA PUBLIC KEY');
+      if (pem) {
+        const { n, e } = parsePubKeyPEM(pem);
+        return { tipo: 'RSA PUBLIC KEY', n, e, pem };
+      }
+    } catch(ex) {}
+  }
+  // RSA SIGN
+  if (content.includes('-----BEGIN RSA SIGN-----')) {
+    try {
+      const pem = extraerPEM(content, 'RSA SIGN');
+      if (pem) {
+        const { firma, n, e } = parseSignPEM(pem);
+        return { tipo: 'RSA SIGN', firma, n, e, pem };
+      }
+    } catch(ex) {}
+  }
+  // seed en texto plano (legacy)
+  const mSeed = content.match(/Seed\s*:\s*(.+)/);
+  if (mSeed) resultado.seed = mSeed[1].trim();
+  return resultado;
+}
+
+// Alias legacy para compatibilidad con descifrarDesdeTxt
+function detectKeysInTxt(content) { return parsearTxtUnificado(content); }
+function detectMessageInTxt(content) {
+  const r = parsearTxtUnificado(content);
+  if (r.tipo === 'RSA CIPHER') return { tipo: 'pem_cipher', datos: r };
+  return { tipo: null, datos: null };
+}
+
+// ═══════════════════════════════════════════════════════
+//  TERMINAL ENGINE
+// ═══════════════════════════════════════════════════════
+
+const output = document.getElementById('output');
+const cmdInput = document.getElementById('cmd-input');
+
+function print(text, cls = 'output-text') {
+  if (typeof text !== 'string') text = String(text);
+  const lines = text.split('\n');
+  for (const line of lines) {
+    const div = document.createElement('div');
+    div.className = 'line ' + cls;
+    div.textContent = line;
+    output.appendChild(div);
+  }
+  output.scrollTop = output.scrollHeight;
+}
+
+function printPEM(pem) { print(pem, 'pem'); }
+function printSep() { print('─'.repeat(44), 'sep'); }
+function printBlank() { print('', 'output-text'); }
+
+function clearTerminal() { output.innerHTML = ''; }
+
+// ═══════════════════════════════════════════════════════
+//  ASYNC INPUT QUEUE
+// ═══════════════════════════════════════════════════════
+
+let inputQueue = [];
+let inputResolvers = [];
+let pemModalResolve = null;
+let historyBuf = [];
+let histIdx = -1;
+let pendingPrompt = '';
+
+cmdInput.addEventListener('keydown', e => {
+  if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (histIdx < historyBuf.length - 1) { histIdx++; cmdInput.value = historyBuf[historyBuf.length - 1 - histIdx]; }
+  } else if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (histIdx > 0) { histIdx--; cmdInput.value = historyBuf[historyBuf.length - 1 - histIdx]; }
+    else { histIdx = -1; cmdInput.value = ''; }
+  } else if (e.key === 'Enter') {
+    const val = cmdInput.value;
+    cmdInput.value = '';
+    histIdx = -1;
+    if (val.trim()) historyBuf.push(val);
+    print((pendingPrompt ? pendingPrompt : '›') + ' ' + val, 'prompt');
+    pendingPrompt = '';
+    if (inputResolvers.length > 0) {
+      const res = inputResolvers.shift();
+      res(val);
+    } else {
+      inputQueue.push(val);
+    }
+  }
 });
 
-// ───────── MATH ─────────
-function modPow(base, exp, mod){
-    let result = 1;
-    base %= mod;
-    while(exp > 0){
-        if(exp % 2 === 1) result = (result * base) % mod;
-        base = (base * base) % mod;
-        exp = Math.floor(exp / 2);
-    }
-    return result;
+function askInput(promptStr) {
+  return new Promise(resolve => {
+    if (promptStr) { print(promptStr, 'label'); pendingPrompt = '›'; }
+    if (inputQueue.length > 0) { resolve(inputQueue.shift()); return; }
+    inputResolvers.push(resolve);
+  });
 }
 
-function gcd(a,b){
-    while(b){
-        [a,b]=[b,a%b];
-    }
-    return a;
+// PEM modal
+function openPEMModal() {
+  return new Promise(resolve => {
+    pemModalResolve = resolve;
+    document.getElementById('modal-textarea').value = '';
+    document.getElementById('modal').classList.add('show');
+    setTimeout(() => document.getElementById('modal-textarea').focus(), 50);
+  });
+}
+function closeModal(val) {
+  document.getElementById('modal').classList.remove('show');
+  if (pemModalResolve) { pemModalResolve(val); pemModalResolve = null; }
 }
 
-// Miller-Rabin simple
-function isPrime(n){
-    if(n<2) return false;
-    if(n%2===0) return n===2;
+async function leerPEM() {
+  print('→ pegar bloque PEM (se abrirá ventana)', 'info');
+  const pem = await openPEMModal();
+  if (!pem) throw new Error('PEM cancelado');
+  return pem.trim();
+}
 
-    let d=n-1,r=0;
-    while(d%2===0){d/=2;r++;}
+// ═══════════════════════════════════════════════════════
+//  PROGRAM LOGIC (mirrors Python script)
+// ═══════════════════════════════════════════════════════
 
-    for(let i=0;i<5;i++){
-        let a = 2 + Math.floor(Math.random()*(n-3));
-        let x = modPow(a,d,n);
+async function cifrarNumero() {
+  const numStr = await askInput('número:');
+  const num = BigInt(numStr.trim());
+  const { n, e, d } = await obtenerClavesPublicas();
+  const modo = await elegirModoRSA();
+  const exp = modo === 'e' ? e : (d ?? BigInt(await askInput('d:')));
+  const c = modPow(num, exp, n);
+  printBlank(); print(c.toString(), 'success'); printBlank();
+}
 
-        if(x===1||x===n-1) continue;
+async function descifrarNumero() {
+  const numStr = await askInput('número cifrado:');
+  const c = BigInt(numStr.trim());
+  const nStr = await askInput('n:');
+  const n = BigInt(nStr.trim());
+  const modo = await elegirModoRSA();
+  let exp;
+  if (modo === 'e') { const dStr = await askInput('d:'); exp = BigInt(dStr.trim()); }
+  else { const eStr = await askInput('e:'); exp = BigInt(eStr.trim()); }
+  printBlank(); print(modPow(c, exp, n).toString(), 'success'); printBlank();
+}
 
-        let ok=false;
-        for(let j=0;j<r-1;j++){
-            x=(x*x)%n;
-            if(x===n-1){ok=true;break;}
+async function cifrarTexto() {
+  const texto = await askInput('texto:');
+  const { n, e, d } = await obtenerClavesPublicas();
+  const modo = await elegirModoRSA();
+  let exp = modo === 'e' ? e : (d ?? BigInt(await askInput('d:')));
+  const nums = textoANumeros(texto);
+  const cifrados = nums.map(v => {
+    if (v === MARCADOR_DIGITO) return -modPow(1n, exp, n); // placeholder marker, encode as -1
+    if (v === 0) return 0n;
+    return modPow(BigInt(v), exp, n);
+  });
+  // Fix marker
+  const cifradosFixed = [];
+  for (let i = 0; i < nums.length; i++) {
+    if (nums[i] === MARCADOR_DIGITO) cifradosFixed.push(-modPow(BigInt(Math.abs(MARCADOR_DIGITO)), exp, n));
+    else if (nums[i] === 0) cifradosFixed.push(0n);
+    else cifradosFixed.push(modPow(BigInt(nums[i]), exp, n));
+  }
+  printBlank();
+  print(cifradosFixed.map(x => x.toString()).join(' '), 'success');
+  printBlank();
+}
+
+async function descifrarTexto() {
+  const entrada = await askInput('números cifrados (separados por espacios):');
+  const cifrados = entrada.trim().split(/\s+/).map(s => BigInt(s));
+  const nStr = await askInput('n:');
+  const n = BigInt(nStr.trim());
+  const modo = await elegirModoRSA();
+  let exp;
+  if (modo === 'e') exp = BigInt((await askInput('d:')).trim());
+  else exp = BigInt((await askInput('e:')).trim());
+  const descifrados = cifrados.map(c => {
+    if (c < 0n) return MARCADOR_DIGITO;
+    if (c === 0n) return 0;
+    return Number(modPow(c, exp, n));
+  });
+  printBlank(); print(numerosATexto(descifrados), 'success'); printBlank();
+}
+
+async function obtenerClavesPublicas() {
+  const resp = await askInput('¿tienes n y e? (y/n):');
+  let n, e, d = null, p = null, q = null;
+  if (['y','si','s',''].includes(resp.trim().toLowerCase())) {
+    n = BigInt((await askInput('n:')).trim());
+    e = BigInt((await askInput('e:')).trim());
+  } else {
+    p = BigInt((await askInput('p:')).trim());
+    q = BigInt((await askInput('q:')).trim());
+    n = p * q;
+    const phi = (p - 1n) * (q - 1n);
+    print(`n = ${n}`, 'label');
+    print(`φ(n) = ${phi}`, 'label');
+    e = BigInt((await askInput('e:')).trim());
+    d = modInverse(e, phi);
+    print(`d = ${d}`, 'label');
+  }
+  return { n, e, d, p, q };
+}
+
+async function elegirModoRSA() {
+  print('', 'output-text');
+  print('1 → usar e', 'muted');
+  print('2 → usar d', 'muted');
+  const op = (await askInput('')).trim();
+  return op === '2' ? 'd' : 'e';
+}
+
+async function pedirSeed(promptStr = 'seed (vacío = normal, "random" = aleatoria):') {
+  const s = (await askInput(promptStr)).trim();
+  if (s.toLowerCase() === 'random') {
+    const seed = randomSeed();
+    print(`✓ seed aleatoria: ${seed}`, 'success');
+    return seed;
+  }
+  return s;
+}
+
+async function generarClaves() {
+  printSep();
+  const cifrasStr = (await askInput('cifras para n (Enter = aleatorio):')).trim();
+  let cifrasN;
+  if (!cifrasStr) { cifrasN = Math.floor(Math.random() * 21) + 10; print(`cifras: ${cifrasN}`, 'muted'); }
+  else cifrasN = parseInt(cifrasStr);
+
+  const bitsN = digitsToN(cifrasN);
+  const bitsPrimo = Math.max(Math.floor(bitsN / 2), 8);
+  if (bitsPrimo > 2048) {
+    print(`advertencia: ${cifrasN} dígitos → ${bitsN} bits, puede tardar varios minutos`, 'info');
+  }
+  print('generando primos...', 'muted');
+
+  let p = randomPrime(bitsPrimo);
+  let q = randomPrime(bitsPrimo);
+  while (q === p) q = randomPrime(bitsPrimo);
+  const n = p * q;
+  const phi = (p - 1n) * (q - 1n);
+
+  const cifrasEStr = (await askInput('cifras para e (Enter = usar 65537):')).trim();
+  let e;
+  if (!cifrasEStr) {
+    e = 65537n;
+    if (gcd(e, phi) !== 1n) { e = 3n; while (gcd(e, phi) !== 1n) e += 2n; }
+  } else {
+    const bitsE = digitsToN(parseInt(cifrasEStr));
+    let tries = 0;
+    while (true) {
+      e = randomPrime(bitsE);
+      if (gcd(e, phi) === 1n) break;
+      if (++tries > 1000) { e = 65537n; break; }
+    }
+  }
+  const d = modInverse(e, phi);
+
+  const pemPub = genPubKeyPEM(n, e);
+  const pemPriv = genPrivKeyPEM(n, e, d, p, q);
+
+  printBlank();
+  printSep();
+  print(`p   = ${p}`, 'label');
+  print(`q   = ${q}`, 'label');
+  print(`n   = ${n}`, 'label');
+  print(`φ(n)= ${phi}`, 'label');
+  print(`e   = ${e}`, 'label');
+  print(`d   = ${d}`, 'label');
+  printBlank();
+  printPEM(pemPub);
+  printBlank();
+  printPEM(pemPriv);
+  printBlank();
+
+  // optional message
+  const cifrarQ = (await askInput('¿cifrar un mensaje ahora? (y/n):')).trim().toLowerCase();
+  let msgOrig = null, cifradosMsg = null, pemMsg = null, seedUsada = null, modoCifrado = null;
+
+  if (['y','si','s'].includes(cifrarQ)) {
+    print('1 → cifrar con e', 'muted'); print('2 → cifrar con d', 'muted');
+    const modoStr = (await askInput('')).trim();
+    modoCifrado = modoStr === '2' ? 'd' : 'e';
+    const exp = modoCifrado === 'd' ? d : e;
+
+    seedUsada = await pedirSeed();
+    if (seedUsada) {
+      applyAbc(genAbcWithSeed(seedUsada));
+      printBlank(); mostrarAbecedario();
+    }
+
+    const textoMsg = await askInput('texto a cifrar:');
+    const numsMsg = textoANumeros(textoMsg);
+    cifradosMsg = numsMsg.map(v => {
+      if (v === MARCADOR_DIGITO) return -modPow(BigInt(Math.abs(MARCADOR_DIGITO)), exp, n);
+      if (v === 0) return 0n;
+      return modPow(BigInt(v), exp, n);
+    });
+    pemMsg = genCipherPEM(cifradosMsg, n, e, null, modoCifrado, seedUsada);
+    msgOrig = textoMsg;
+
+    printBlank();
+    print(cifradosMsg.map(x => x.toString()).join(' '), 'success');
+    printBlank();
+    printPEM(pemMsg);
+    printBlank();
+  }
+
+  // ── Guardar archivos con nuevo formato (un único PEM por archivo) ──
+  writeFile('clave_publica.txt', pemPub);
+  writeFile('clave_privada.txt', pemPriv);
+  printBlank();
+  print('✓ clave_publica.txt', 'success');
+  print('✓ clave_privada.txt', 'success');
+
+  if (msgOrig !== null) {
+    const inclClavesGen = (await askInput('¿incluir claves públicas (n, e) en el PEM? (y/n):')).trim().toLowerCase();
+    const inclSeedGen = seedUsada ? (await askInput('¿incluir seed en el PEM? (y/n):')).trim().toLowerCase() : '';
+    const pemCipher = genCipherPEM(cifradosMsg, n, e, null, modoCifrado, seedUsada,
+      ['y','si','s'].includes(inclClavesGen), ['y','si','s'].includes(inclSeedGen));
+    writeFile('mensaje_cifrado.txt', pemCipher);
+    printBlank();
+    printPEM(pemCipher);
+    print('✓ mensaje_cifrado.txt', 'success');
+  }
+  resetAbc();
+}
+
+function mostrarAbecedario() {
+  for (const [letra, num] of Object.entries(ABECEDARIO)) {
+    print(`${letra} = ${num}`, 'muted');
+  }
+}
+
+async function cifrarDesdeTxt() {
+  printSep();
+  const nombre = (await askInput('nombre del archivo TXT (o vacío para listar):')).trim();
+  const fileNames = listFiles();
+  if (!nombre) { fileNames.forEach(f => print(`  ${f}`, 'muted')); return; }
+  const content = readFile(nombre);
+  if (content === null) { print(`✗ archivo no encontrado: ${nombre}`, 'error'); return; }
+  const tipo = detectarTipoPEM(content);
+  let n = null, e = null, d = null;
+  if (tipo === 'RSA PUBLIC KEY') {
+    try { const p = parsePubKeyPEM(extraerPEM(content, 'RSA PUBLIC KEY')); n = p.n; e = p.e; print(`✓ clave pública detectada`, 'success'); } catch(ex){}
+  } else if (tipo === 'RSA PRIVATE KEY') {
+    try { const p = parsePrivKeyPEM(extraerPEM(content, 'RSA PRIVATE KEY')); n = p.n; e = p.e; d = p.d; print(`✓ clave privada detectada`, 'success'); } catch(ex){}
+  }
+  if (n !== null) {
+    const usar = (await askInput('¿usar claves del archivo? (y/n):')).trim().toLowerCase();
+    if (!['y','si','s',''].includes(usar)) { n = null; e = null; d = null; }
+  }
+
+  const mensaje = (await askInput('mensaje a cifrar:')).trim();
+  if (!mensaje) { print('✗ mensaje vacío', 'error'); return; }
+
+  if (n === null) {
+    const r = await obtenerClavesPublicas();
+    n = r.n; e = r.e; d = r.d;
+  }
+
+  const modo = await elegirModoRSA();
+  let exp, modoCifrado = modo;
+  if (modo === 'e') {
+    exp = e;
+  } else {
+    if (d !== null) { print('✓ usando d del archivo', 'success'); exp = d; }
+    else exp = BigInt((await askInput('d:')).trim());
+  }
+
+  const seedUsada = await pedirSeed();
+  if (seedUsada) { applyAbc(genAbcWithSeed(seedUsada)); }
+
+  const nums = textoANumeros(mensaje);
+  const cifrados = nums.map(v => {
+    if (v === MARCADOR_DIGITO) return -modPow(BigInt(Math.abs(MARCADOR_DIGITO)), exp, n);
+    if (v === 0) return 0n;
+    return modPow(BigInt(v), exp, n);
+  });
+  const inclClavesCif = (await askInput('¿incluir claves públicas (n, e) en el PEM? (y/n):')).trim().toLowerCase();
+  const inclSeedCif = seedUsada ? (await askInput('¿incluir seed en el PEM? (y/n):')).trim().toLowerCase() : '';
+  const pemCipher = genCipherPEM(cifrados, n, e, null, modoCifrado, seedUsada,
+    ['y','si','s'].includes(inclClavesCif), ['y','si','s'].includes(inclSeedCif));
+
+  printBlank();
+  printPEM(pemCipher);
+
+  const guardar = (await askInput('\n¿guardar en archivo? (y/n):')).trim().toLowerCase();
+  if (['y','si','s',''].includes(guardar)) {
+    let nombreSal = (await askInput('nombre (Enter = mensaje_cifrado.txt):')).trim();
+    if (!nombreSal) nombreSal = 'mensaje_cifrado.txt';
+    writeFile(nombreSal, pemCipher);
+    print(`✓ guardado: ${nombreSal}`, 'success');
+  }
+  resetAbc();
+}
+
+async function descifrarDesdeTxt() {
+  printSep();
+  const nombre = (await askInput('nombre del archivo TXT:')).trim();
+  const content = readFile(nombre);
+  if (content === null) { print(`✗ no encontrado: ${nombre}`, 'error'); return; }
+
+  const parsed = parsearTxtUnificado(content);
+
+  if (parsed.tipo === 'RSA CIPHER') {
+    print(`✓ RSA CIPHER detectado (cifrado con ${parsed.modo})`, 'success');
+    if (parsed.seed) print(`  seed: ${parsed.seed}`, 'muted');
+    const { modo, nums } = parsed;
+    let { n, e } = parsed;
+    // Determinar exponente de descifrado
+    let exp;
+    if (modo === 'e') {
+      print('cifrado con e → necesito d para descifrar', 'info');
+      print('1 → introducir d manualmente', 'muted');
+      print('2 → pegar RSA PRIVATE KEY PEM', 'muted');
+      print('3 → cargar desde archivo', 'muted');
+      const opD = (await askInput('')).trim();
+      if (opD === '2') {
+        const pemPriv = await leerPEM();
+        try {
+          const p2 = parsePrivKeyPEM(pemPriv);
+          exp = p2.d;
+          if (n === null) { n = p2.n; e = p2.e; }
+          print('✓ d leído del PEM', 'success');
+        } catch(ex) { print(`✗ ${ex}`, 'error'); return; }
+      } else if (opD === '3') {
+        const nom = (await askInput('nombre del archivo:')).trim();
+        const fc = readFile(nom);
+        if (!fc) { print('✗ no encontrado', 'error'); return; }
+        const tipo2 = detectarTipoPEM(fc);
+        if (tipo2 !== 'RSA PRIVATE KEY') { print('✗ no se encontró RSA PRIVATE KEY en el archivo', 'error'); return; }
+        try {
+          const p2 = parsePrivKeyPEM(extraerPEM(fc, 'RSA PRIVATE KEY'));
+          exp = p2.d;
+          if (n === null) { n = p2.n; e = p2.e; }
+          print('✓ d leído del archivo', 'success');
+        } catch(ex) { print(`✗ ${ex}`, 'error'); return; }
+      } else {
+        exp = BigInt((await askInput('d:')).trim());
+        if (n === null) {
+          n = BigInt((await askInput('n:')).trim());
+          e = BigInt((await askInput('e:')).trim());
         }
-        if(!ok) return false;
-    }
-    return true;
-}
-
-function randPrime(bits){
-    while(true){
-        let n = Math.floor(Math.random()*2**bits);
-        n |= (1<<(bits-1)) | 1;
-        if(isPrime(n)) return n;
-    }
-}
-
-// ───────── RSA STATE ─────────
-let n,e,d;
-
-// ───────── COMMANDS ─────────
-function cmd(c){
-
-    if(c==="help"){
-        log("Comandos:");
-        log("gen → generar claves");
-        log("enc → cifrar texto");
-        log("dec → descifrar números");
-        return;
-    }
-
-    if(c==="gen"){
-        let p = randPrime(10);
-        let q = randPrime(10);
-        n = p*q;
-        let phi = (p-1)*(q-1);
-
-        e = 65537;
-        if(gcd(e,phi)!==1){
-            e = 3;
-            while(gcd(e,phi)!==1) e+=2;
+      }
+    } else {
+      print('cifrado con d → descifrar con e (clave pública)', 'info');
+      if (n === null) {
+        print('el PEM no incluye claves públicas', 'info');
+        print('1 → introducir n y e manualmente', 'muted');
+        print('2 → pegar RSA PUBLIC KEY PEM', 'muted');
+        print('3 → cargar desde archivo', 'muted');
+        const opC = (await askInput('')).trim();
+        if (opC === '2') {
+          const pem2 = await leerPEM();
+          try { const p2 = parsePubKeyPEM(pem2); n = p2.n; e = p2.e; print('✓ claves leídas', 'success'); }
+          catch(ex) { print(`✗ ${ex}`, 'error'); return; }
+        } else if (opC === '3') {
+          const nom = (await askInput('nombre del archivo:')).trim();
+          const fc = readFile(nom);
+          if (!fc) { print('✗ no encontrado', 'error'); return; }
+          const tipo2 = detectarTipoPEM(fc);
+          try {
+            if (tipo2 === 'RSA PUBLIC KEY') { const p2 = parsePubKeyPEM(extraerPEM(fc, 'RSA PUBLIC KEY')); n = p2.n; e = p2.e; }
+            else if (tipo2 === 'RSA PRIVATE KEY') { const p2 = parsePrivKeyPEM(extraerPEM(fc, 'RSA PRIVATE KEY')); n = p2.n; e = p2.e; }
+            else { print('✗ no se encontró clave en el archivo', 'error'); return; }
+            print('✓ claves leídas del archivo', 'success');
+          } catch(ex) { print(`✗ ${ex}`, 'error'); return; }
+        } else {
+          n = BigInt((await askInput('n:')).trim());
+          e = BigInt((await askInput('e:')).trim());
         }
-
-        d = 1;
-        while((d*e)%phi!==1) d++;
-
-        log("Claves generadas:");
-        log("n="+n);
-        log("e="+e);
-        log("d="+d);
-        return;
+      } else {
+        print(`  n = ${n}`, 'muted');
+        print(`  e = ${e}`, 'muted');
+      }
+      exp = e;
     }
-
-    if(c==="enc"){
-        let text = prompt("Texto:");
-        let nums = text.split("").map(ch=>{
-            if(ch===" ") return 0;
-            return map[ch.toLowerCase()]||0;
-        });
-
-        let enc = nums.map(v=>modPow(v,e,n));
-        log("Cifrado:");
-        log(enc.join(" "));
-        return;
+    // Seed: usar la del PEM si existe, preguntar si no
+    let seedUsada;
+    if (parsed.seed) {
+      print(`✓ seed "${parsed.seed}" incluida en el PEM`, 'success');
+      const usar = (await askInput('¿usar esta seed? (y/n):')).trim().toLowerCase();
+      seedUsada = ['y','si','s',''].includes(usar) ? parsed.seed : await pedirSeed();
+    } else {
+      print('el PEM no incluye seed', 'muted');
+      seedUsada = await pedirSeed();
     }
+    if (seedUsada) applyAbc(genAbcWithSeed(seedUsada));
+    const descifrados = nums.map(c => {
+      if (c < 0n) return MARCADOR_DIGITO;
+      if (c === 0n) return 0;
+      return Number(modPow(c, exp, n));
+    });
+    printBlank();
+    print(numerosATexto(descifrados), 'success');
+    printBlank();
+    resetAbc();
+    return;
+  }
 
-    if(c==="dec"){
-        let inputNums = prompt("Números:");
-        let nums = inputNums.split(" ").map(Number);
+  // Fallback: pedir datos manualmente
+  print('no se detectó RSA CIPHER en el archivo', 'muted');
+  print('1 → introducir números manualmente', 'muted');
+  print('2 → pegar PEM RSA CIPHER', 'muted');
+  const op = (await askInput('')).trim();
+  let cifrados, n, exp;
+  if (op === '1') {
+    const en = (await askInput('números separados por espacios:')).trim();
+    cifrados = en.split(/\s+/).map(s => BigInt(s));
+    n = BigInt((await askInput('n:')).trim());
+    print('1 → cifrado con e (descifrar con d)', 'muted');
+    print('2 → cifrado con d (descifrar con e)', 'muted');
+    const modo = (await askInput('')).trim();
+    if (modo === '2') exp = BigInt((await askInput('e:')).trim());
+    else exp = BigInt((await askInput('d:')).trim());
+  } else if (op === '2') {
+    const pem = await leerPEM();
+    try {
+      const parsed2 = parseCipherPEM(pem);
+      n = parsed2.n; cifrados = parsed2.nums;
+      if (parsed2.modo === 'e') {
+        exp = parsed2.d ?? BigInt((await askInput('d:')).trim());
+      } else {
+        exp = parsed2.e;
+      }
+    } catch(ex) { print(`✗ error: ${ex}`, 'error'); return; }
+  } else { print('inválido', 'error'); return; }
 
-        let dec = nums.map(v=>{
-            if(!d) return 0;
-            return modPow(v,d,n);
-        });
-
-        let text = dec.map(v=>{
-            if(v===0) return " ";
-            return rev[v]||"?";
-        }).join("");
-
-        log("Texto:");
-        log(text);
-        return;
-    }
+  const seedUsada = await pedirSeed();
+  if (seedUsada) applyAbc(genAbcWithSeed(seedUsada));
+  const descifrados = cifrados.map(c => {
+    if (c < 0n) return MARCADOR_DIGITO;
+    if (c === 0n) return 0;
+    return Number(modPow(c, exp, n));
+  });
+  printBlank();
+  print(numerosATexto(descifrados), 'success');
+  printBlank();
+  resetAbc();
 }
 
-input.addEventListener("keydown",(e)=>{
-    if(e.key==="Enter"){
-        cmd(input.value.trim());
-        input.value="";
+async function firmarMensaje() {
+  printSep();
+  const mensaje = await askInput('mensaje a firmar:');
+  const hashBig = await sha256BigInt(mensaje);
+  print(`hash: ${hashBig}`, 'muted');
+  const { n, e, d } = await obtenerClavesPublicas();
+  const dVal = d ?? BigInt((await askInput('d:')).trim());
+  const firma = modPow(hashBig, dVal, n);
+  printBlank();
+  print(`firma: ${firma}`, 'success');
+  // RSA SIGN: MPI(firma) + MPI(n) + MPI(e)
+  const pemFirma = genSignPEM(firma, n, e);
+  printBlank();
+  printPEM(pemFirma);
+
+  const guardar = (await askInput('¿guardar firma en archivo? (y/n):')).trim().toLowerCase();
+  if (['y','si','s',''].includes(guardar)) {
+    let nombreSal = (await askInput('nombre (Enter = firma.txt):')).trim();
+    if (!nombreSal) nombreSal = 'firma.txt';
+    writeFile(nombreSal, pemFirma);
+    print(`✓ guardado: ${nombreSal}`, 'success');
+  }
+}
+
+async function verificarFirma() {
+  printSep();
+  const mensaje = await askInput('mensaje:');
+  print('1 → introducir firma manualmente', 'muted');
+  print('2 → cargar desde archivo .txt', 'muted');
+  print('3 → pegar PEM RSA SIGN', 'muted');
+  const op = (await askInput('')).trim();
+  let firma, n, e;
+
+  if (op === '2') {
+    const nombre = (await askInput('nombre del archivo:')).trim();
+    const content = readFile(nombre);
+    if (!content) { print('✗ no encontrado', 'error'); return; }
+    try {
+      const pem = extraerPEM(content, 'RSA SIGN');
+      if (!pem) throw new Error('no hay RSA SIGN en el archivo');
+      const parsed = parseSignPEM(pem);
+      firma = parsed.firma; n = parsed.n; e = parsed.e;
+      print(`✓ firma, n y e leídos del archivo`, 'success');
+    } catch(ex) { print(`✗ error: ${ex}`, 'error'); return; }
+  } else if (op === '3') {
+    const pem = await leerPEM();
+    try {
+      const parsed = parseSignPEM(pem);
+      firma = parsed.firma; n = parsed.n; e = parsed.e;
+      print(`✓ firma, n y e leídos del PEM`, 'success');
+    } catch(ex) { print(`✗ error: ${ex}`, 'error'); return; }
+  } else {
+    firma = BigInt((await askInput('firma (entero):')).trim());
+    n = BigInt((await askInput('n:')).trim());
+    e = BigInt((await askInput('e:')).trim());
+  }
+
+  const hashBig = await sha256BigInt(mensaje);
+  const hashMod = hashBig % n;
+  const resultado = modPow(firma, e, n);
+  printBlank();
+  print(`hash esperado: ${hashMod}`, 'muted');
+  print(`hash recibido: ${resultado}`, 'muted');
+  printBlank();
+  if (resultado === hashMod) print('✓ FIRMA VÁLIDA', 'success');
+  else print('✗ FIRMA INVÁLIDA', 'error');
+  printBlank();
+}
+
+async function menuSeeds() {
+  printSep();
+  print('1 → seed personalizada (intercambios)', 'muted');
+  print('2 → generar seed aleatoria', 'muted');
+  print('3 → mostrar abecedario con seed', 'muted');
+  const op = (await askInput('')).trim();
+  if (op === '1') {
+    print('introduce intercambios (ej: a c). "listo" para terminar', 'muted');
+    const abc = {...DEFAULT_ABC};
+    while (true) {
+      const en = (await askInput('intercambio:')).trim().toLowerCase();
+      if (en === 'listo' || en === '') break;
+      const [l1, l2] = en.split(/\s+/);
+      if (!l1 || !l2 || !abc[l1] || !abc[l2]) { print('✗ inválido', 'error'); continue; }
+      [abc[l1], abc[l2]] = [abc[l2], abc[l1]];
+      print(`✓ ${l1} ↔ ${l2}`, 'success');
     }
+    const seed = Object.values(abc).join('-');
+    printBlank(); print('seed generada:', 'label'); print(seed, 'success');
+  } else if (op === '2') {
+    const seed = randomSeed();
+    print(`✓ seed: ${seed}`, 'success');
+  } else if (op === '3') {
+    const s = await pedirSeed();
+    if (s) { applyAbc(genAbcWithSeed(s)); mostrarAbecedario(); resetAbc(); }
+    else mostrarAbecedario();
+  }
+}
+
+// PEM Universal
+function decodificarPEM(pem) {
+  const mLabel = pem.match(/-----BEGIN ([A-Z0-9 ]+)-----/);
+  if (!mLabel) { print('✗ cabecera PEM inválida', 'error'); return; }
+  const label = mLabel[1].trim();
+  printBlank(); print(`tipo: ${label}`, 'label'); printSep();
+  try {
+    if (label === 'RSA PUBLIC KEY') {
+      const { n, e } = parsePubKeyPEM(pem);
+      print(`n = ${n}`, 'label'); print(`e = ${e}`, 'label');
+    } else if (label === 'RSA PRIVATE KEY') {
+      const { n, e, d, p, q } = parsePrivKeyPEM(pem);
+      print(`n = ${n}`, 'label'); print(`e = ${e}`, 'label'); print(`d = ${d}`, 'label');
+      print(`p = ${p}`, 'label'); print(`q = ${q}`, 'label');
+    } else if (label === 'RSA CIPHER') {
+      const { n, e, modo, seed, nums } = parseCipherPEM(pem);
+      print(`cifrado con: ${modo}`, 'label');
+      if (n !== null) { print(`n = ${n}`, 'label'); print(`e = ${e}`, 'label'); }
+      else print('claves públicas: no incluidas', 'muted');
+      if (seed) print(`seed: ${seed}`, 'label');
+      else print('seed: no incluida', 'muted');
+      print(`${nums.length} valores cifrados:`, 'muted');
+      print(nums.map(x=>x.toString()).join(' '), 'success');
+    } else if (label === 'RSA SIGN') {
+      const { firma, n, e } = parseSignPEM(pem);
+      print(`firma = ${firma}`, 'label'); print(`n = ${n}`, 'label'); print(`e = ${e}`, 'label');
+    } else {
+      print(`✗ tipo no reconocido: ${label}`, 'error');
+      print('tipos soportados: RSA PUBLIC KEY, RSA PRIVATE KEY, RSA CIPHER, RSA SIGN', 'muted');
+    }
+  } catch(ex) { print(`✗ error: ${ex}`, 'error'); }
+}
+
+async function menuPEMUniversal() {
+  printSep();
+  print('1 → decodificar (pegar PEM)', 'muted');
+  print('2 → decodificar (cargar desde archivo)', 'muted');
+  print('3 → codificar PEM', 'muted');
+  const op = (await askInput('')).trim();
+
+  if (op === '1') {
+    const pem = await leerPEM();
+    decodificarPEM(pem);
+
+  } else if (op === '2') {
+    const nombre = (await askInput('nombre del archivo:')).trim();
+    const content = readFile(nombre);
+    if (!content) { print('✗ no encontrado', 'error'); return; }
+    // Detectar automáticamente qué tipo de PEM hay dentro
+    const tipo = detectarTipoPEM(content);
+    if (!tipo) { print('✗ no se encontró ningún PEM reconocido en el archivo', 'error'); return; }
+    const pem = extraerPEM(content, tipo);
+    if (!pem) { print('✗ error extrayendo PEM', 'error'); return; }
+    decodificarPEM(pem);
+
+  } else if (op === '3') {
+    print('1 → RSA PUBLIC KEY    (n, e)', 'muted');
+    print('2 → RSA PRIVATE KEY   (n, e, d, p, q)', 'muted');
+    print('3 → RSA CIPHER        (nums, n, e [, d], modo)', 'muted');
+    print('4 → RSA SIGN          (firma, n, e)', 'muted');
+    const subop = (await askInput('')).trim();
+    try {
+      if (subop === '1') {
+        const n = BigInt((await askInput('n:')).trim()); const e = BigInt((await askInput('e:')).trim());
+        printBlank(); printPEM(genPubKeyPEM(n, e));
+      } else if (subop === '2') {
+        const n = BigInt((await askInput('n:')).trim()); const e = BigInt((await askInput('e:')).trim());
+        const d = BigInt((await askInput('d:')).trim()); const p = BigInt((await askInput('p:')).trim());
+        const q = BigInt((await askInput('q:')).trim());
+        printBlank(); printPEM(genPrivKeyPEM(n, e, d, p, q));
+      } else if (subop === '3') {
+        const en = (await askInput('números cifrados (espacios):')).trim();
+        const nums = en.split(/\s+/).map(s => BigInt(s));
+        print('¿con qué se cifró? 1=e  2=d', 'muted');
+        const modoStr = (await askInput('')).trim();
+        const modo = modoStr === '2' ? 'd' : 'e';
+        // ¿Incluir claves públicas dentro del PEM?
+        print('¿incluir claves públicas (n, e) dentro del PEM? (y/n)', 'muted');
+        const inclStr = (await askInput('')).trim().toLowerCase();
+        const incluirClaves = ['y','si','s'].includes(inclStr);
+        let n = null, e = null;
+        if (incluirClaves) {
+          print('claves públicas (n, e):', 'label');
+          print('1 → introducir n y e manualmente', 'muted');
+          print('2 → pegar RSA PUBLIC KEY PEM', 'muted');
+          print('3 → cargar desde archivo', 'muted');
+          const clavesOp = (await askInput('')).trim();
+          if (clavesOp === '2') {
+            const pem = await leerPEM();
+            try { const parsed = parsePubKeyPEM(pem); n = parsed.n; e = parsed.e; print('✓ n y e leídos del PEM', 'success'); }
+            catch(ex) { print(`✗ error: ${ex}`, 'error'); return; }
+          } else if (clavesOp === '3') {
+            const nombre = (await askInput('nombre del archivo:')).trim();
+            const fc = readFile(nombre);
+            if (!fc) { print('✗ no encontrado', 'error'); return; }
+            const tipo = detectarTipoPEM(fc);
+            if (tipo === 'RSA PUBLIC KEY') {
+              try { const parsed = parsePubKeyPEM(extraerPEM(fc, 'RSA PUBLIC KEY')); n = parsed.n; e = parsed.e; print('✓ n y e leídos del archivo', 'success'); }
+              catch(ex) { print(`✗ error: ${ex}`, 'error'); return; }
+            } else if (tipo === 'RSA PRIVATE KEY') {
+              try { const parsed = parsePrivKeyPEM(extraerPEM(fc, 'RSA PRIVATE KEY')); n = parsed.n; e = parsed.e; print('✓ n y e leídos de la clave privada', 'success'); }
+              catch(ex) { print(`✗ error: ${ex}`, 'error'); return; }
+            } else { print('✗ no se encontró clave en el archivo', 'error'); return; }
+          } else {
+            n = BigInt((await askInput('n:')).trim());
+            e = BigInt((await askInput('e:')).trim());
+          }
+        }
+        const seedCipher = (await askInput('seed (vacío = ninguna):')).trim();
+        let inclSeedUni = false;
+        if (seedCipher) {
+          const inclSeedStr = (await askInput('¿incluir seed en el PEM? (y/n):')).trim().toLowerCase();
+          inclSeedUni = ['y','si','s'].includes(inclSeedStr);
+        }
+        printBlank(); printPEM(genCipherPEM(nums, n, e, null, modo, seedCipher, incluirClaves, inclSeedUni));
+      } else if (subop === '4') {
+        const f = BigInt((await askInput('firma:')).trim());
+        const n = BigInt((await askInput('n:')).trim()); const e = BigInt((await askInput('e:')).trim());
+        printBlank(); printPEM(genSignPEM(f, n, e));
+      } else print('inválido', 'error');
+    } catch(ex) { print(`✗ error: ${ex}`, 'error'); }
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  MAIN MENU
+// ═══════════════════════════════════════════════════════
+
+async function showMainMenu() {
+  printBlank();
+  printSep();
+  print('1  números', 'muted');
+  print('2  letras', 'muted');
+  print('3  modo avanzado', 'muted');
+  printSep();
+}
+
+async function menuModoAvanzado() {
+  printBlank();
+  printSep();
+  print('1  generar claves', 'muted');
+  print('2  seeds', 'muted');
+  print('3  cifrar/descifrar desde TXT', 'muted');
+  print('4  firma digital', 'muted');
+  print('5  PEM universal', 'muted');
+  printSep();
+  const op = (await askInput('')).trim();
+
+  if (op === '1') await generarClaves().catch(e => print(`✗ ${e}`, 'error'));
+  else if (op === '2') await menuSeeds().catch(e => print(`✗ ${e}`, 'error'));
+  else if (op === '3') {
+    printBlank();
+    print('1  cifrar desde TXT', 'muted');
+    print('2  descifrar desde TXT', 'muted');
+    const sub = (await askInput('')).trim();
+    if (sub === '1') await cifrarDesdeTxt().catch(e => print(`✗ ${e}`, 'error'));
+    else if (sub === '2') await descifrarDesdeTxt().catch(e => print(`✗ ${e}`, 'error'));
+    else print('opción inválida', 'error');
+  } else if (op === '4') {
+    printBlank();
+    print('1  firmar mensaje', 'muted');
+    print('2  verificar firma', 'muted');
+    const sub = (await askInput('')).trim();
+    if (sub === '1') await firmarMensaje().catch(e => print(`✗ ${e}`, 'error'));
+    else if (sub === '2') await verificarFirma().catch(e => print(`✗ ${e}`, 'error'));
+    else print('opción inválida', 'error');
+  } else if (op === '5') await menuPEMUniversal().catch(e => print(`✗ ${e}`, 'error'));
+  else print('opción inválida', 'error');
+}
+
+let running = false;
+
+async function runProgram() {
+  if (running) return;
+  running = true;
+  print('RSA — cifrado y descifrado', 'label');
+  while (true) {
+    await showMainMenu();
+    const op = (await askInput('')).trim();
+
+    if (op === '1') {
+      printBlank();
+      print('1  cifrar', 'muted'); print('2  descifrar', 'muted');
+      const sub = (await askInput('')).trim();
+      if (sub === '1') await cifrarNumero().catch(e => print(`✗ ${e}`, 'error'));
+      else if (sub === '2') await descifrarNumero().catch(e => print(`✗ ${e}`, 'error'));
+      else print('opción inválida', 'error');
+
+    } else if (op === '2') {
+      const seed = await pedirSeed('seed (vacío = normal, "random" = aleatoria):');
+      if (seed) applyAbc(genAbcWithSeed(seed));
+      printBlank(); mostrarAbecedario(); printBlank();
+      print('1  cifrar', 'muted'); print('2  descifrar', 'muted');
+      const sub = (await askInput('')).trim();
+      if (sub === '1') await cifrarTexto().catch(e => print(`✗ ${e}`, 'error'));
+      else if (sub === '2') await descifrarTexto().catch(e => print(`✗ ${e}`, 'error'));
+      else print('opción inválida', 'error');
+      resetAbc();
+
+    } else if (op === '3') {
+      await menuModoAvanzado();
+
+    } else { print('opción inválida', 'error'); }
+  }
+}
+
+// ── Tab switching (mobile) ──
+let currentTab = 'terminal';
+function switchTab(tab) {
+  currentTab = tab;
+  const panels = {
+    terminal: document.getElementById('terminal-panel'),
+    editor:   document.getElementById('editor-panel'),
+    archivos: document.getElementById('file-panel'),
+  };
+  const btns = document.querySelectorAll('.tab-btn');
+  const tabOrder = ['terminal', 'editor', 'archivos'];
+  Object.entries(panels).forEach(([key, el]) => {
+    el.classList.toggle('mobile-active', key === tab);
+  });
+  btns.forEach((btn, i) => {
+    btn.classList.toggle('active', tabOrder[i] === tab);
+  });
+  if (tab === 'terminal') setTimeout(() => cmdInput.focus(), 50);
+}
+
+// En móvil, activar terminal por defecto
+function initMobileLayout() {
+  if (window.innerWidth <= 768) {
+    document.getElementById('terminal-panel').classList.add('mobile-active');
+  }
+}
+initMobileLayout();
+window.addEventListener('resize', () => {
+  const isMobile = window.innerWidth <= 768;
+  if (!isMobile) {
+    // En escritorio quitar clases mobile-active para que el CSS normal tome control
+    ['terminal-panel','editor-panel','file-panel'].forEach(id => {
+      document.getElementById(id).classList.remove('mobile-active');
+    });
+  } else {
+    // Al volver a móvil restaurar el tab activo
+    switchTab(currentTab);
+  }
 });
 
-log("RSA Web Terminal listo. Escribe 'help'");
+// ── Focus management ──
+document.addEventListener('mousedown', e => {
+  const modal = document.getElementById('modal');
+  if (modal.classList.contains('show')) return;
+  if (e.target.id === 'editor-area' || e.target.id === 'modal-textarea') return;
+  const tag = e.target.tagName.toLowerCase();
+  if (tag === 'textarea' || tag === 'input' || tag === 'button' || tag === 'select') return;
+  const active = document.activeElement;
+  if (active && active.id === 'editor-area') { e.preventDefault(); return; }
+  // Solo enfocar terminal si estamos en la pestaña terminal (o escritorio)
+  if (window.innerWidth > 768 || currentTab === 'terminal') cmdInput.focus();
+});
 
+// Al abrir pestaña terminal en móvil, enfocar input
+document.getElementById('terminal-panel').addEventListener('click', e => {
+  if (window.innerWidth <= 768 && e.target.id !== 'editor-area' && e.target.id !== 'modal-textarea') {
+    const tag = e.target.tagName.toLowerCase();
+    if (tag !== 'button') cmdInput.focus();
+  }
+});
+
+cmdInput.focus();
+renderFileList();
+runProgram();
 </script>
-
 </body>
 </html>
